@@ -19,9 +19,9 @@ TxUltimate = tx_ultimate_ns.class_("TxUltimate", cg.Component, uart.UARTDevice)
 
 ZONE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_ON_TAP): automation.validate_automation(single=False),
-        cv.Optional(CONF_ON_HOLD): automation.validate_automation(single=False),
-        cv.Optional(CONF_ON_DOUBLE_TAP): automation.validate_automation(single=False),
+        cv.Optional(CONF_ON_TAP): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_HOLD): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_DOUBLE_TAP): automation.validate_automation(single=True),
     },
     extra=cv.ALLOW_EXTRA,
 )
@@ -30,10 +30,10 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(TxUltimate),
-            cv.Optional(CONF_ZONES): cv.ensure_list(cv.Schema({}, extra=cv.ALLOW_EXTRA)),
-            cv.Optional(CONF_ON_SWIPE_LEFT): automation.validate_automation(),
-            cv.Optional(CONF_ON_SWIPE_RIGHT): automation.validate_automation(),
-            cv.Optional(CONF_ON_TWO_FINGER): automation.validate_automation(),
+            cv.Optional(CONF_ZONES): cv.ensure_list(ZONE_SCHEMA),
+            cv.Optional(CONF_ON_SWIPE_LEFT): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_SWIPE_RIGHT): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_TWO_FINGER): automation.validate_automation(single=True),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -52,28 +52,28 @@ async def to_code(config):
     cg.add(var.set_num_zones(num_zones))
 
     for i, zone_conf in enumerate(zones):
-        for conf in zone_conf.get(CONF_ON_TAP, []):
+        if CONF_ON_TAP in zone_conf:
             await automation.build_automation(
-                var.get_on_tap_trigger(i), [], conf
+                var.get_on_tap_trigger(i), [], zone_conf[CONF_ON_TAP]
             )
-        for conf in zone_conf.get(CONF_ON_HOLD, []):
+        if CONF_ON_HOLD in zone_conf:
             await automation.build_automation(
-                var.get_on_hold_trigger(i), [], conf
+                var.get_on_hold_trigger(i), [], zone_conf[CONF_ON_HOLD]
             )
-        for conf in zone_conf.get(CONF_ON_DOUBLE_TAP, []):
+        if CONF_ON_DOUBLE_TAP in zone_conf:
             await automation.build_automation(
-                var.get_on_double_tap_trigger(i), [], conf
+                var.get_on_double_tap_trigger(i), [], zone_conf[CONF_ON_DOUBLE_TAP]
             )
 
-    for conf in config.get(CONF_ON_SWIPE_LEFT, []):
+    if CONF_ON_SWIPE_LEFT in config:
         await automation.build_automation(
-            var.get_on_swipe_left_trigger(), [], conf
+            var.get_on_swipe_left_trigger(), [], config[CONF_ON_SWIPE_LEFT]
         )
-    for conf in config.get(CONF_ON_SWIPE_RIGHT, []):
+    if CONF_ON_SWIPE_RIGHT in config:
         await automation.build_automation(
-            var.get_on_swipe_right_trigger(), [], conf
+            var.get_on_swipe_right_trigger(), [], config[CONF_ON_SWIPE_RIGHT]
         )
-    for conf in config.get(CONF_ON_TWO_FINGER, []):
+    if CONF_ON_TWO_FINGER in config:
         await automation.build_automation(
-            var.get_on_two_finger_trigger(), [], conf
+            var.get_on_two_finger_trigger(), [], config[CONF_ON_TWO_FINGER]
         )
