@@ -19,9 +19,9 @@ TxUltimate = tx_ultimate_ns.class_("TxUltimate", cg.Component, uart.UARTDevice)
 
 ZONE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_ON_TAP): automation.validate_automation(),
-        cv.Optional(CONF_ON_HOLD): automation.validate_automation(),
-        cv.Optional(CONF_ON_DOUBLE_TAP): automation.validate_automation(),
+        cv.Optional(CONF_ON_TAP): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_HOLD): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_DOUBLE_TAP): automation.validate_automation(single=True),
     }
 )
 
