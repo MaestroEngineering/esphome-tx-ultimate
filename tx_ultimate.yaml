@@ -1,0 +1,40 @@
+substitutions:
+  device_name: tx-ultimate
+  friendly_name: TX Ultimate
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/MaestroEngineering/esphome-tx-ultimate
+      ref: main
+    components: [tx_ultimate]
+
+logger:
+  level: DEBUG
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+uart:
+  id: uart_bus
+  tx_pin: GPIO19
+  rx_pin: GPIO22
+  baud_rate: 115200
+
+tx_ultimate:
+  uart_id: uart_bus
