@@ -23,7 +23,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(TxUltimate),
-            cv.Optional(CONF_ZONES): cv.ensure_list(cv.Schema({})),
+            cv.Optional(CONF_ZONES): cv.ensure_list(cv.Schema({}, extra=cv.ALLOW_EXTRA)),
             cv.Optional(CONF_ON_SWIPE_LEFT): automation.validate_automation(),
             cv.Optional(CONF_ON_SWIPE_RIGHT): automation.validate_automation(),
             cv.Optional(CONF_ON_TWO_FINGER): automation.validate_automation(),
