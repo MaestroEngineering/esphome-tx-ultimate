@@ -9,6 +9,7 @@ static const char *const TAG = "tx_ultimate";
 static const uint8_t HEADER[] = {0xAA, 0x55, 0x01, 0x02};
 static const uint8_t EVENT_PRESS = 0x02;
 static const uint8_t EVENT_RELEASE = 0x01;
+static const uint8_t EVENT_DRAGGED = 0x03;  // treated identically to release for swipe detection
 static const uint8_t TWO_FINGER_POS = 0x0B;
 
 // ── lifecycle ────────────────────────────────────────────────────────────────
@@ -47,8 +48,10 @@ void TxUltimate::loop() {
       continue;
     }
     handle_packet();
-    // Consume the 7 parsed bytes; any trailing bytes will be dropped on next sync.
+    // Consume the 7 parsed bytes, then flush trailing packet bytes until the next 0xAA.
     rx_buf_.erase(rx_buf_.begin(), rx_buf_.begin() + PACKET_MIN_LEN);
+    while (!rx_buf_.empty() && rx_buf_[0] != 0xAA)
+      rx_buf_.erase(rx_buf_.begin());
   }
 
   check_holds_and_double_taps();
@@ -74,9 +77,11 @@ void TxUltimate::handle_packet() {
     uint8_t zone = pos_to_zone(press_pos);
     if (zone >= 1 && zone <= num_zones_)
       handle_press(zone);
-  } else if (event == EVENT_RELEASE) {
+  } else if (event == EVENT_RELEASE || event == EVENT_DRAGGED) {
     if (release_pos == TWO_FINGER_POS) {
       ESP_LOGD(TAG, "Two-finger gesture");
+      if (active_press_zone_ > 0 && active_press_zone_ <= num_zones_)
+        zone_states_[active_press_zone_ - 1].pressed = false;
       on_two_finger_trigger_.trigger();
       active_press_zone_ = 0;
       return;

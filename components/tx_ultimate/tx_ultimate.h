@@ -10,8 +10,8 @@ namespace tx_ultimate {
 
 static const uint32_t HOLD_TIMEOUT_MS = 500;
 static const uint32_t DOUBLE_TAP_WINDOW_MS = 400;
-// Minimum meaningful bytes in one packet: 4-byte header + event + release_pos + press_pos.
-// Real hardware may send 8-9 bytes; trailing bytes are discarded by the header-sync logic.
+// Bytes needed to parse one packet: 4-byte header + event + release_pos + press_pos.
+// Real hardware sends 8-9 bytes; trailing bytes are flushed in loop() after parsing.
 static const uint8_t PACKET_MIN_LEN = 7;
 
 struct ZoneState {
