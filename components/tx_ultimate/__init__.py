@@ -17,13 +17,7 @@ CONF_ON_TWO_FINGER = "on_two_finger"
 tx_ultimate_ns = cg.esphome_ns.namespace("tx_ultimate")
 TxUltimate = tx_ultimate_ns.class_("TxUltimate", cg.Component, uart.UARTDevice)
 
-ZONE_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_ON_TAP): automation.validate_automation(single=False),
-        cv.Optional(CONF_ON_HOLD): automation.validate_automation(single=False),
-        cv.Optional(CONF_ON_DOUBLE_TAP): automation.validate_automation(single=False),
-    }
-)
+ZONE_SCHEMA = cv.Schema({})
 
 CONFIG_SCHEMA = (
     cv.Schema(
