@@ -30,7 +30,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(TxUltimate),
             cv.Optional(CONF_ZONES): cv.All(
-                cv.ensure_list(ZONE_SCHEMA), cv.Length(min=1, max=4)
+                cv.ensure_list, [ZONE_SCHEMA], cv.Length(min=1, max=4)
             ),
             cv.Optional(CONF_ON_SWIPE_LEFT): automation.validate_automation(),
             cv.Optional(CONF_ON_SWIPE_RIGHT): automation.validate_automation(),
