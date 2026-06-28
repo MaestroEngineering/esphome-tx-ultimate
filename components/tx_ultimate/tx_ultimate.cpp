@@ -7,10 +7,9 @@ namespace tx_ultimate {
 static const char *const TAG = "tx_ultimate";
 
 static const uint8_t HEADER[] = {0xAA, 0x55, 0x01, 0x02};
-static const uint8_t EVENT_PRESS = 0x02;
+static const uint8_t EVENT_PRESS   = 0x02;
 static const uint8_t EVENT_RELEASE = 0x01;
-static const uint8_t EVENT_DRAGGED = 0x03;  // treated identically to release for swipe detection
-static const uint8_t TWO_FINGER_POS = 0x0B;
+static const uint8_t EVENT_DRAGGED = 0x03;
 
 // ── lifecycle ────────────────────────────────────────────────────────────────
 
@@ -78,16 +77,24 @@ void TxUltimate::handle_packet() {
     if (zone >= 1 && zone <= num_zones_)
       handle_press(zone);
   } else if (event == EVENT_RELEASE || event == EVENT_DRAGGED) {
-    if (release_pos == TWO_FINGER_POS) {
-      ESP_LOGD(TAG, "Two-finger gesture");
+    // Special hardware-reported positions: handle before zone mapping
+    if (release_pos == TWO_FINGER_POS || release_pos == SWIPE_LTR_POS || release_pos == SWIPE_RTL_POS) {
       if (active_press_zone_ > 0 && active_press_zone_ <= num_zones_)
         zone_states_[active_press_zone_ - 1].pressed = false;
-      on_two_finger_trigger_.trigger();
+      if (release_pos == TWO_FINGER_POS) {
+        ESP_LOGD(TAG, "Two-finger gesture");
+        on_two_finger_trigger_.trigger();
+      } else if (release_pos == SWIPE_LTR_POS) {
+        ESP_LOGD(TAG, "Swipe right");
+        on_swipe_right_trigger_.trigger();
+      } else {
+        ESP_LOGD(TAG, "Swipe left");
+        on_swipe_left_trigger_.trigger();
+      }
       active_press_zone_ = 0;
       return;
     }
-    uint8_t release_zone = pos_to_zone(release_pos);
-    handle_release(active_press_zone_, release_zone);
+    handle_release(active_press_zone_);
     active_press_zone_ = 0;
   }
 }
@@ -103,23 +110,11 @@ void TxUltimate::handle_press(uint8_t zone) {
   s.hold_fired = false;
 }
 
-void TxUltimate::handle_release(uint8_t press_zone, uint8_t release_zone) {
+void TxUltimate::handle_release(uint8_t press_zone) {
   if (press_zone == 0 || press_zone > num_zones_) return;
 
   ZoneState &s = zone_states_[press_zone - 1];
   s.pressed = false;
-
-  // Swipe: press and release on different zones
-  if (release_zone != press_zone && release_zone >= 1 && release_zone <= num_zones_) {
-    if (release_zone > press_zone) {
-      ESP_LOGD(TAG, "Swipe right (Z%u → Z%u)", press_zone, release_zone);
-      on_swipe_right_trigger_.trigger();
-    } else {
-      ESP_LOGD(TAG, "Swipe left (Z%u → Z%u)", press_zone, release_zone);
-      on_swipe_left_trigger_.trigger();
-    }
-    return;
-  }
 
   // Hold already fired — suppress tap
   if (s.hold_fired) return;

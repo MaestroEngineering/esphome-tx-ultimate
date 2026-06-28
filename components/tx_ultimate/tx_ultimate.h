@@ -14,6 +14,11 @@ static const uint32_t DOUBLE_TAP_WINDOW_MS = 400;
 // Real hardware sends 8-9 bytes; trailing bytes are flushed in loop() after parsing.
 static const uint8_t PACKET_MIN_LEN = 7;
 
+// Special release-position codes reported by the hardware
+static const uint8_t TWO_FINGER_POS = 0x0B;
+static const uint8_t SWIPE_LTR_POS  = 0x0C;
+static const uint8_t SWIPE_RTL_POS  = 0x0D;
+
 struct ZoneState {
   uint32_t press_time{0};
   bool pressed{false};
@@ -57,7 +62,7 @@ class TxUltimate : public Component, public uart::UARTDevice {
   uint8_t pos_to_zone(uint8_t pos);
   void handle_packet();
   void handle_press(uint8_t zone);
-  void handle_release(uint8_t press_zone, uint8_t release_zone);
+  void handle_release(uint8_t press_zone);
   void check_holds_and_double_taps();
 };
 
