@@ -52,28 +52,28 @@ async def to_code(config):
     cg.add(var.set_num_zones(num_zones))
 
     for i, zone_conf in enumerate(zones):
-        if CONF_ON_TAP in zone_conf:
+        for conf in zone_conf.get(CONF_ON_TAP, []):
             await automation.build_automation(
-                var.get_on_tap_trigger(i), [], zone_conf[CONF_ON_TAP]
+                var.get_on_tap_trigger(i), [], conf
             )
-        if CONF_ON_HOLD in zone_conf:
+        for conf in zone_conf.get(CONF_ON_HOLD, []):
             await automation.build_automation(
-                var.get_on_hold_trigger(i), [], zone_conf[CONF_ON_HOLD]
+                var.get_on_hold_trigger(i), [], conf
             )
-        if CONF_ON_DOUBLE_TAP in zone_conf:
+        for conf in zone_conf.get(CONF_ON_DOUBLE_TAP, []):
             await automation.build_automation(
-                var.get_on_double_tap_trigger(i), [], zone_conf[CONF_ON_DOUBLE_TAP]
+                var.get_on_double_tap_trigger(i), [], conf
             )
 
-    if CONF_ON_SWIPE_LEFT in config:
+    for conf in config.get(CONF_ON_SWIPE_LEFT, []):
         await automation.build_automation(
-            var.get_on_swipe_left_trigger(), [], config[CONF_ON_SWIPE_LEFT]
+            var.get_on_swipe_left_trigger(), [], conf
         )
-    if CONF_ON_SWIPE_RIGHT in config:
+    for conf in config.get(CONF_ON_SWIPE_RIGHT, []):
         await automation.build_automation(
-            var.get_on_swipe_right_trigger(), [], config[CONF_ON_SWIPE_RIGHT]
+            var.get_on_swipe_right_trigger(), [], conf
         )
-    if CONF_ON_TWO_FINGER in config:
+    for conf in config.get(CONF_ON_TWO_FINGER, []):
         await automation.build_automation(
-            var.get_on_two_finger_trigger(), [], config[CONF_ON_TWO_FINGER]
+            var.get_on_two_finger_trigger(), [], conf
         )
