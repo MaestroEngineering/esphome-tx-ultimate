@@ -15,7 +15,6 @@ external_components:
   - source:
       type: git
       url: https://github.com/MaestroEngineering/esphome-tx-ultimate
-      ref: main
     components: [tx_ultimate]
 
 logger:
@@ -66,11 +65,11 @@ tx_ultimate:
       on_double_tap:
         - logger.log: "Zone 4 double tap"
 
-  on_swipe_left:
-    - logger.log: "Swipe left"
+  on_swipe_up:
+    - logger.log: "Swipe up"
 
-  on_swipe_right:
-    - logger.log: "Swipe right"
+  on_swipe_down:
+    - logger.log: "Swipe down"
 
   on_two_finger:
     - logger.log: "Two-finger gesture"

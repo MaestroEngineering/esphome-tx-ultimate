@@ -78,18 +78,18 @@ void TxUltimate::handle_packet() {
       handle_press(zone);
   } else if (event == EVENT_RELEASE || event == EVENT_DRAGGED) {
     // Special hardware-reported positions: handle before zone mapping
-    if (release_pos == TWO_FINGER_POS || release_pos == SWIPE_LTR_POS || release_pos == SWIPE_RTL_POS) {
+    if (release_pos == TWO_FINGER_POS || release_pos == SWIPE_DOWN_POS || release_pos == SWIPE_UP_POS) {
       if (active_press_zone_ > 0 && active_press_zone_ <= num_zones_)
         zone_states_[active_press_zone_ - 1].pressed = false;
       if (release_pos == TWO_FINGER_POS) {
         ESP_LOGD(TAG, "Two-finger gesture");
         on_two_finger_trigger_.trigger();
-      } else if (release_pos == SWIPE_LTR_POS) {
-        ESP_LOGD(TAG, "Swipe right");
-        on_swipe_right_trigger_.trigger();
+      } else if (release_pos == SWIPE_DOWN_POS) {
+        ESP_LOGD(TAG, "Swipe down");
+        on_swipe_down_trigger_.trigger();
       } else {
-        ESP_LOGD(TAG, "Swipe left");
-        on_swipe_left_trigger_.trigger();
+        ESP_LOGD(TAG, "Swipe up");
+        on_swipe_up_trigger_.trigger();
       }
       active_press_zone_ = 0;
       return;

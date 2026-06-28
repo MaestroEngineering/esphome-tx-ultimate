@@ -10,8 +10,8 @@ CONF_ZONES = "zones"
 CONF_ON_TAP = "on_tap"
 CONF_ON_HOLD = "on_hold"
 CONF_ON_DOUBLE_TAP = "on_double_tap"
-CONF_ON_SWIPE_LEFT = "on_swipe_left"
-CONF_ON_SWIPE_RIGHT = "on_swipe_right"
+CONF_ON_SWIPE_UP = "on_swipe_up"
+CONF_ON_SWIPE_DOWN = "on_swipe_down"
 CONF_ON_TWO_FINGER = "on_two_finger"
 
 tx_ultimate_ns = cg.esphome_ns.namespace("tx_ultimate")
@@ -31,8 +31,8 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(TxUltimate),
             cv.Optional(CONF_ZONES): cv.ensure_list(ZONE_SCHEMA),
-            cv.Optional(CONF_ON_SWIPE_LEFT): automation.validate_automation(single=True),
-            cv.Optional(CONF_ON_SWIPE_RIGHT): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_SWIPE_UP): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_SWIPE_DOWN): automation.validate_automation(single=True),
             cv.Optional(CONF_ON_TWO_FINGER): automation.validate_automation(single=True),
         }
     )
@@ -65,13 +65,13 @@ async def to_code(config):
                 var.get_on_double_tap_trigger(i), [], zone_conf[CONF_ON_DOUBLE_TAP]
             )
 
-    if CONF_ON_SWIPE_LEFT in config:
+    if CONF_ON_SWIPE_UP in config:
         await automation.build_automation(
-            var.get_on_swipe_left_trigger(), [], config[CONF_ON_SWIPE_LEFT]
+            var.get_on_swipe_up_trigger(), [], config[CONF_ON_SWIPE_UP]
         )
-    if CONF_ON_SWIPE_RIGHT in config:
+    if CONF_ON_SWIPE_DOWN in config:
         await automation.build_automation(
-            var.get_on_swipe_right_trigger(), [], config[CONF_ON_SWIPE_RIGHT]
+            var.get_on_swipe_down_trigger(), [], config[CONF_ON_SWIPE_DOWN]
         )
     if CONF_ON_TWO_FINGER in config:
         await automation.build_automation(

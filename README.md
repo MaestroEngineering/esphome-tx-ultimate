@@ -37,9 +37,9 @@ tx_ultimate:
       on_double_tap:
         - logger.log: "Zone 1 double-tapped"
     # add up to 4 zones …
-  on_swipe_left:
+  on_swipe_up:
     - logger.log: "Swipe left"
-  on_swipe_right:
+  on_swipe_down:
     - logger.log: "Swipe right"
   on_two_finger:
     - logger.log: "Two-finger gesture"
@@ -66,8 +66,8 @@ wifi_password: "YourPassword"
 |-----|------|---------|-------------|
 | `uart_id` | id | required | UART bus defined above |
 | `zones` | list | 4 empty zones | Per-zone automation callbacks (1–4 entries) |
-| `on_swipe_left` | automation | — | Fired when a right-to-left swipe is detected |
-| `on_swipe_right` | automation | — | Fired when a left-to-right swipe is detected |
+| `on_swipe_up` | automation | — | Fired on an upward swipe (0x0D) |
+| `on_swipe_down` | automation | — | Fired on a downward swipe (0x0C) |
 | `on_two_finger` | automation | — | Fired on a two-finger touch |
 
 ### Per-zone callbacks

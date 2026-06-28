@@ -16,8 +16,8 @@ static const uint8_t PACKET_MIN_LEN = 7;
 
 // Special release-position codes reported by the hardware
 static const uint8_t TWO_FINGER_POS = 0x0B;
-static const uint8_t SWIPE_LTR_POS  = 0x0C;
-static const uint8_t SWIPE_RTL_POS  = 0x0D;
+static const uint8_t SWIPE_DOWN_POS  = 0x0C;
+static const uint8_t SWIPE_UP_POS    = 0x0D;
 
 struct ZoneState {
   uint32_t press_time{0};
@@ -38,8 +38,8 @@ class TxUltimate : public Component, public uart::UARTDevice {
   Trigger<> *get_on_tap_trigger(uint8_t zone) { return on_tap_triggers_[zone]; }
   Trigger<> *get_on_hold_trigger(uint8_t zone) { return on_hold_triggers_[zone]; }
   Trigger<> *get_on_double_tap_trigger(uint8_t zone) { return on_double_tap_triggers_[zone]; }
-  Trigger<> *get_on_swipe_left_trigger() { return &on_swipe_left_trigger_; }
-  Trigger<> *get_on_swipe_right_trigger() { return &on_swipe_right_trigger_; }
+  Trigger<> *get_on_swipe_up_trigger() { return &on_swipe_up_trigger_; }
+  Trigger<> *get_on_swipe_down_trigger() { return &on_swipe_down_trigger_; }
   Trigger<> *get_on_two_finger_trigger() { return &on_two_finger_trigger_; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
@@ -53,8 +53,8 @@ class TxUltimate : public Component, public uart::UARTDevice {
   std::vector<Trigger<> *> on_hold_triggers_;
   std::vector<Trigger<> *> on_double_tap_triggers_;
 
-  Trigger<> on_swipe_left_trigger_;
-  Trigger<> on_swipe_right_trigger_;
+  Trigger<> on_swipe_up_trigger_;
+  Trigger<> on_swipe_down_trigger_;
   Trigger<> on_two_finger_trigger_;
 
   uint8_t active_press_zone_{0};  // 1-indexed; 0 = none
