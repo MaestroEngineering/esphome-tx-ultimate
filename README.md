@@ -38,12 +38,35 @@ tx_ultimate:
         - logger.log: "Zone 1 double-tapped"
     # add up to 4 zones …
   on_swipe_up:
-    - logger.log: "Swipe left"
+    - logger.log: "Swipe up"
   on_swipe_down:
-    - logger.log: "Swipe right"
+    - logger.log: "Swipe down"
   on_two_finger:
     - logger.log: "Two-finger gesture"
 ```
+
+### Tuning the touch areas and tap latency
+
+```yaml
+tx_ultimate:
+  uart_id: uart_bus
+  double_tap_window: 0ms      # no double-tap, taps fire instantly
+  zones:
+    - min_position: 1         # shift the boundaries if presses land
+      max_position: 2         # on the wrong button
+      on_tap:
+        - logger.log: "Zone 1 tapped"
+    - min_position: 3
+      max_position: 5
+    - min_position: 6
+      max_position: 8
+    - min_position: 9
+      max_position: 12
+```
+
+With `double_tap_window: 0ms` a tap fires the moment you lift your finger.
+Any non-zero value forces every single tap to wait that long, because the
+component cannot know a tap is single until the window has passed.
 
 A complete example is in [tx_ultimate.yaml](tx_ultimate.yaml). Flash it with:
 
@@ -66,6 +89,8 @@ wifi_password: "YourPassword"
 |-----|------|---------|-------------|
 | `uart_id` | id | required | UART bus defined above |
 | `zones` | list | 4 empty zones | Per-zone automation callbacks (1–4 entries) |
+| `double_tap_window` | time | `200ms` | How long a tap waits to see if a second one follows. **`0ms` disables double-tap detection**, and taps then fire on release with no delay. |
+| `hold_timeout` | time | `500ms` | Press duration that counts as a hold |
 | `on_swipe_up` | automation | — | Fired on an upward swipe (0x0D) |
 | `on_swipe_down` | automation | — | Fired on a downward swipe (0x0C) |
 | `on_two_finger` | automation | — | Fired on a two-finger touch |
@@ -76,9 +101,11 @@ Each entry in the `zones` list supports:
 
 | Key | Description |
 |-----|-------------|
+| `min_position` | First raw finger position (1–12) belonging to this zone |
+| `max_position` | Last raw finger position (1–12) belonging to this zone |
 | `on_tap` | Short press and release on the same zone |
-| `on_hold` | Press held for ≥ 500 ms with no release |
-| `on_double_tap` | Two taps on the same zone within 400 ms |
+| `on_hold` | Press held with no release for `hold_timeout` |
+| `on_double_tap` | Two taps on the same zone within `double_tap_window` |
 
 Zones are ordered left → right. You may define 1–4 zones; omitting `zones` entirely defaults to 4 zones with no callbacks.
 
@@ -106,12 +133,15 @@ The switch sends 7–9 byte packets over UART:
 
 | Gesture | Condition |
 |---------|-----------|
-| Tap | Press and release on the same zone; fires after 400 ms double-tap window |
-| Hold | Press with no release within 500 ms; suppresses the subsequent tap |
-| Double tap | Two complete tap cycles on the same zone within 400 ms |
-| Swipe right | Release zone > press zone |
-| Swipe left | Release zone < press zone |
+| Tap | Press and release on the same zone. Fires after `double_tap_window` expires, or immediately on release when that is `0ms` |
+| Hold | Press with no release within `hold_timeout`; suppresses the subsequent tap |
+| Double tap | Two complete tap cycles on the same zone within `double_tap_window` |
+| Swipe up | Release position byte = `0x0D` |
+| Swipe down | Release position byte = `0x0C` |
 | Two-finger | Release position byte = `0x0B` |
+
+Swipes are reported directly by the hardware as special position codes — the
+component does not infer them by comparing press and release zones.
 
 ## Hardware
 

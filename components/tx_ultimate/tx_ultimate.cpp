@@ -20,13 +20,39 @@ void TxUltimate::set_num_zones(uint8_t n) {
     on_hold_triggers_.push_back(new Trigger<>());
     on_double_tap_triggers_.push_back(new Trigger<>());
   }
+  // Default split: zone 1 = 1-3, zone 2 = 4-6, zone 3 = 7-9, zone 4 = 10-12.
+  // YAML can override any of these with min_position / max_position.
+  zone_min_pos_.resize(n);
+  zone_max_pos_.resize(n);
+  for (uint8_t i = 0; i < n; i++) {
+    zone_min_pos_[i] = i * POSITIONS_PER_ZONE + 1;
+    zone_max_pos_[i] = i * POSITIONS_PER_ZONE + POSITIONS_PER_ZONE;
+  }
+}
+
+void TxUltimate::set_zone_positions(uint8_t zone, uint8_t min_pos, uint8_t max_pos) {
+  if (zone >= zone_min_pos_.size()) return;
+  zone_min_pos_[zone] = min_pos;
+  zone_max_pos_[zone] = max_pos;
 }
 
 void TxUltimate::setup() {
-  ESP_LOGCONFIG(TAG, "TX Ultimate: %u zone(s)", num_zones_);
-  // Ensure triggers exist even when set_num_zones wasn't called from YAML
-  set_num_zones(num_zones_);
+  // Ensure triggers and position ranges exist even when set_num_zones
+  // wasn't called from YAML. This must run before the ranges are logged.
+  if (zone_min_pos_.empty())
+    set_num_zones(num_zones_);
   zone_states_.resize(num_zones_);
+
+  ESP_LOGCONFIG(TAG, "TX Ultimate: %u zone(s)", num_zones_);
+  if (double_tap_window_ms_ == 0) {
+    ESP_LOGCONFIG(TAG, "  double tap: disabled (taps fire immediately)");
+  } else {
+    ESP_LOGCONFIG(TAG, "  double tap window: %ums", double_tap_window_ms_);
+  }
+  ESP_LOGCONFIG(TAG, "  hold timeout: %ums", hold_timeout_ms_);
+  for (uint8_t i = 0; i < num_zones_; i++) {
+    ESP_LOGCONFIG(TAG, "  zone %u: positions %u-%u", i + 1, zone_min_pos_[i], zone_max_pos_[i]);
+  }
 }
 
 // ── UART loop ────────────────────────────────────────────────────────────────
@@ -59,9 +85,14 @@ void TxUltimate::loop() {
 // ── packet parsing ───────────────────────────────────────────────────────────
 
 uint8_t TxUltimate::pos_to_zone(uint8_t pos) {
-  // Positions 1-3 = Z1, 4-6 = Z2, 7-9 = Z3, 10-12 = Z4
-  if (pos == 0 || pos > 12) return 0;
-  return (pos - 1) / 3 + 1;
+  if (pos == 0 || pos > MAX_POSITION) return 0;
+  for (uint8_t i = 0; i < num_zones_ && i < zone_min_pos_.size(); i++) {
+    if (pos >= zone_min_pos_[i] && pos <= zone_max_pos_[i])
+      return i + 1;
+  }
+  // Position fell in a gap between configured ranges - ignore it rather than
+  // guessing, so a deliberate dead band between buttons stays dead.
+  return 0;
 }
 
 void TxUltimate::handle_packet() {
@@ -74,13 +105,21 @@ void TxUltimate::handle_packet() {
 
   if (event == EVENT_PRESS) {
     uint8_t zone = pos_to_zone(press_pos);
-    if (zone >= 1 && zone <= num_zones_)
+    if (zone >= 1 && zone <= num_zones_) {
       handle_press(zone);
+    } else {
+      ESP_LOGD(TAG, "Position %u is not in any zone — ignored", press_pos);
+    }
   } else if (event == EVENT_RELEASE || event == EVENT_DRAGGED) {
     // Special hardware-reported positions: handle before zone mapping
     if (release_pos == TWO_FINGER_POS || release_pos == SWIPE_DOWN_POS || release_pos == SWIPE_UP_POS) {
-      if (active_press_zone_ > 0 && active_press_zone_ <= num_zones_)
-        zone_states_[active_press_zone_ - 1].pressed = false;
+      if (active_press_zone_ > 0 && active_press_zone_ <= num_zones_) {
+        ZoneState &s = zone_states_[active_press_zone_ - 1];
+        s.pressed = false;
+        // Clear any tap waiting out the double-tap window, otherwise a swipe
+        // that follows a tap fires a spurious tap once the window expires.
+        s.pending_tap = false;
+      }
       if (release_pos == TWO_FINGER_POS) {
         ESP_LOGD(TAG, "Two-finger gesture");
         on_two_finger_trigger_.trigger();
@@ -119,9 +158,17 @@ void TxUltimate::handle_release(uint8_t press_zone) {
   // Hold already fired — suppress tap
   if (s.hold_fired) return;
 
+  // Double-tap disabled: nothing to wait for, so fire the tap now. This is
+  // what removes the window's worth of latency from every press.
+  if (double_tap_window_ms_ == 0) {
+    ESP_LOGD(TAG, "Tap zone %u", press_zone);
+    on_tap_triggers_[press_zone - 1]->trigger();
+    return;
+  }
+
   // Tap / double-tap detection
   uint32_t now = millis();
-  if (s.pending_tap && (now - s.last_tap_time) <= DOUBLE_TAP_WINDOW_MS) {
+  if (s.pending_tap && (now - s.last_tap_time) <= double_tap_window_ms_) {
     ESP_LOGD(TAG, "Double tap zone %u", press_zone);
     s.pending_tap = false;
     on_double_tap_triggers_[press_zone - 1]->trigger();
@@ -137,13 +184,13 @@ void TxUltimate::check_holds_and_double_taps() {
   for (uint8_t i = 0; i < num_zones_; i++) {
     ZoneState &s = zone_states_[i];
 
-    if (s.pressed && !s.hold_fired && (now - s.press_time) >= HOLD_TIMEOUT_MS) {
+    if (s.pressed && !s.hold_fired && (now - s.press_time) >= hold_timeout_ms_) {
       ESP_LOGD(TAG, "Hold zone %u", i + 1);
       s.hold_fired = true;
       on_hold_triggers_[i]->trigger();
     }
 
-    if (s.pending_tap && !s.pressed && (now - s.last_tap_time) > DOUBLE_TAP_WINDOW_MS) {
+    if (s.pending_tap && !s.pressed && (now - s.last_tap_time) > double_tap_window_ms_) {
       ESP_LOGD(TAG, "Tap zone %u", i + 1);
       s.pending_tap = false;
       on_tap_triggers_[i]->trigger();

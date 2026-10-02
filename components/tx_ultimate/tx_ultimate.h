@@ -8,8 +8,10 @@
 namespace esphome {
 namespace tx_ultimate {
 
-static const uint32_t HOLD_TIMEOUT_MS = 500;
-static const uint32_t DOUBLE_TAP_WINDOW_MS = 200;
+// Defaults. Both are overridable from YAML - see __init__.py.
+static const uint32_t DEFAULT_HOLD_TIMEOUT_MS = 500;
+static const uint32_t DEFAULT_DOUBLE_TAP_WINDOW_MS = 200;
+
 // Bytes needed to parse one packet: 4-byte header + event + release_pos + press_pos.
 // Real hardware sends 8-9 bytes; trailing bytes are flushed in loop() after parsing.
 static const uint8_t PACKET_MIN_LEN = 7;
@@ -18,6 +20,10 @@ static const uint8_t PACKET_MIN_LEN = 7;
 static const uint8_t TWO_FINGER_POS = 0x0B;
 static const uint8_t SWIPE_DOWN_POS  = 0x0C;
 static const uint8_t SWIPE_UP_POS    = 0x0D;
+
+// Touch strip reports finger positions 1..12 across its width.
+static const uint8_t MAX_POSITION = 12;
+static const uint8_t POSITIONS_PER_ZONE = 3;
 
 struct ZoneState {
   uint32_t press_time{0};
@@ -32,8 +38,17 @@ class TxUltimate : public Component, public uart::UARTDevice {
   void setup() override;
   void loop() override;
 
-  // Called from to_code before automation triggers are wired; allocates triggers.
+  // Called from to_code before automation triggers are wired; allocates
+  // triggers and fills the default position ranges for each zone.
   void set_num_zones(uint8_t n);
+
+  // 0 disables double-tap detection entirely, which also removes the window's
+  // worth of latency from every single tap.
+  void set_double_tap_window(uint32_t ms) { double_tap_window_ms_ = ms; }
+  void set_hold_timeout(uint32_t ms) { hold_timeout_ms_ = ms; }
+
+  // Which raw finger positions (1..12) belong to a zone. `zone` is 0-indexed.
+  void set_zone_positions(uint8_t zone, uint8_t min_pos, uint8_t max_pos);
 
   Trigger<> *get_on_tap_trigger(uint8_t zone) { return on_tap_triggers_[zone]; }
   Trigger<> *get_on_hold_trigger(uint8_t zone) { return on_hold_triggers_[zone]; }
@@ -46,8 +61,15 @@ class TxUltimate : public Component, public uart::UARTDevice {
 
  protected:
   uint8_t num_zones_{4};
+  uint32_t double_tap_window_ms_{DEFAULT_DOUBLE_TAP_WINDOW_MS};
+  uint32_t hold_timeout_ms_{DEFAULT_HOLD_TIMEOUT_MS};
+
   std::vector<uint8_t> rx_buf_;
   std::vector<ZoneState> zone_states_;
+
+  // Per-zone inclusive position ranges, parallel to zone_states_.
+  std::vector<uint8_t> zone_min_pos_;
+  std::vector<uint8_t> zone_max_pos_;
 
   std::vector<Trigger<> *> on_tap_triggers_;
   std::vector<Trigger<> *> on_hold_triggers_;
